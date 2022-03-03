@@ -50,6 +50,9 @@ Notes:
 
 Change Log
 ----------
+Version 1.9
+- Support UHD2, all current probes.
+
 Version 1.8
 - Improved calling scripts.
 
