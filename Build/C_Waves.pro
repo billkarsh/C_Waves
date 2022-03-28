@@ -64,6 +64,6 @@ QMAKE_TARGET_COMPANY = Bill Karsh
 QMAKE_TARGET_PRODUCT = C_Waves
 QMAKE_TARGET_DESCRIPTION = Mean waveform calculator
 QMAKE_TARGET_COPYRIGHT = (c) 2020, Bill Karsh, All rights reserved
-VERSION = 1.9
+VERSION = 2.0
 
 
