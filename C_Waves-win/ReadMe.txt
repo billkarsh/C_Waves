@@ -50,6 +50,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.0
+- Fix SNR channel exclusion.
+
 Version 1.9
 - Support UHD2, all current probes.
 
