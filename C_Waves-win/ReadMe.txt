@@ -50,6 +50,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.1
+- Support latest probes.
+
 Version 2.0
 - Fix SNR channel exclusion.
 
