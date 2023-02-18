@@ -62,8 +62,6 @@ private:
     ShankMap                *shankMap;
     QString                 outpath;
     CTable                  clustbl;
-    QVector<int>            ig2ic,              // saved to acquired
-                            ic2ig;              // acq to saved or -1
     std::vector<Wrkspc>     vW;
     std::vector<int>        L2W;
     std::vector<std::vector<int> >  TSM;

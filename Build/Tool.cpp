@@ -347,7 +347,7 @@ bool Tool::parseMeta()
     nC = kvp["nSavedChans"].toInt();
 
     smpBytes    = nC * sizeof(qint16);
-    spikeBytes = GBL.nsamp * smpBytes;
+    spikeBytes  = GBL.nsamp * smpBytes;
 
 // -----------------------------
 // Parse neural channel count nN
@@ -356,19 +356,18 @@ bool Tool::parseMeta()
     QStringList sl = kvp["snsApLfSy"].toString().split(
                         QRegExp("^\\s+|\\s*,\\s*"),
                         QString::SkipEmptyParts );
-
     nN = sl[0].toInt();
 
 // ---------------------
 // Saved channel ID list
 // ---------------------
 
-    QVector<uint>   chanIds;
+    QVector<uint>   snsFileChans;
     QString         chnstr = kvp["snsSaveChanSubset"].toString();
 
     if( Subset::isAllChansStr( chnstr ) )
-        Subset::defaultVec( chanIds, nC );
-    else if( !Subset::rngStr2Vec( chanIds, chnstr ) ) {
+        Subset::defaultVec( snsFileChans, nC );
+    else if( !Subset::rngStr2Vec( snsFileChans, chnstr ) ) {
         Log() << QString("Bad snsSaveChanSubset tag '%1'.")
                     .arg( fim.fileName() );
         return false;
@@ -381,17 +380,17 @@ bool Tool::parseMeta()
     sl = kvp["acqApLfSy"].toString().split(
             QRegExp("^\\s+|\\s*,\\s*"),
             QString::SkipEmptyParts );
+    int nAcqChan = sl[0].toInt();
 
-    int nAcqChan = sl[0].toInt() + sl[1].toInt() + sl[2].toInt();
+    QVector<int>    ig2ic( nN ),
+                    ic2ig( nAcqChan );
+    ic2ig.fill( -1 );
 
-    ig2ic.resize( nC );
-    ic2ig.fill( -1, nAcqChan );
-
-    for( int ig = 0; ig < nC; ++ig ) {
+    for( int ig = 0; ig < nN; ++ig ) {
 
         int &C = ig2ic[ig];
 
-        C           = chanIds[ig];
+        C           = snsFileChans[ig];
         ic2ig[C]    = ig;
     }
 

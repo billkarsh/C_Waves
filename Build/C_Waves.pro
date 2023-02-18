@@ -3,7 +3,12 @@ TEMPLATE = app
 TARGET   = C_Waves
 
 win32 {
-    DESTDIR = C:/Users/labadmin/Desktop/SGLBUILD/FIXU/C_Waves/C_Waves-win
+    CONFIG(debug, debug|release) {
+        DESTDIR = C:/Users/labadmin/Desktop/SGLBUILD/FIXU/C_Waves/Debug
+    }
+    else {
+        DESTDIR = C:/Users/labadmin/Desktop/SGLBUILD/FIXU/C_Waves/C_Waves-win
+    }
 }
 
 unix {
