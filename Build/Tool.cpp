@@ -458,7 +458,7 @@ void Tool::createWorkspaces()
 
 // For each channel [0,nAP), calculate an 8-way
 // neighborhood of indices into a timepoint's channels.
-// - Disk with radius {GBL.snr_radius}.
+// - Disk with radius {GBL.snrradius}.
 // - The list is sorted for cache friendliness.
 //
 void Tool::snrTable( int nAP )
