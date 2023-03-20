@@ -40,10 +40,8 @@ Required parameters:
 -num_spikes=1000            ;max waveforms included in averages
 -snr_radius=8               ;disk radius (rows/columns) about pk-chan, or zero
 
-
 Options:
 -snr_radius_um=140          ;disk radius (microns) about pk-chan, or zero
-
 -chnexcl=0,3:5              ;exclude these acq chans from snr
 -prefix=string              ;output files are named:
                             ;  'prefix_mean_waveforms.npy'
@@ -57,34 +55,16 @@ Notes:
 - clus_lbl_npy values must be in range [0,N-1], where N = clus_table_npy row count.
 
 - SNR is calculated on a disk of given radius (see below) about pk-chan. If you set radius=0 only the pk-chan is used for signal and noise estimation. If omitted, the default is -snr_radius=8.
-
 - SNR signal is defined as peak-to-peak maximum on the average waveform, where highest and lowest voltages may appear anywhere in footprint.
 - SNR noise is calculated as standard deviation of residuals of member waveforms on first 15 samples (left tail). This sampling strives to be insensitive to cluster contamination. For this to work as intended, -pre_samples should be at least 20.
 - SNR disk radius: Use option -snr_radius_um to set the radius in microns; this requires metadata item ~snsGeomMap. If -snr_radius_um or ~snsGeomMap are absent, we instead use -snr_radius which specifies the radius as a count of rows/columns in the ~snsShankMap metadata item.
-
 - SNR Note: As of version 20230202, SpikeGLX (*.meta) files record ~snsGeomMap (but NOT ~snsShankMap).
-
-
-
-- You can call C_Waves from a script.
-
-- You can try it by editing the included 'runit.bat' file. Edit the file to set your own parameters. Then double-click the bat file to run it.
-
-- Options must not have spaces.
-
-- In *.bat files, continue long lines using <space><caret>. Like this ^.
-
-- Remove all white space at line ends, especially after a caret (^).
-
 
 
 Change Log
 ----------
 Version 2.2
-
 - Add option -snr_radius_um, to specify SNR disk in microns.
-
-
 
 Version 2.1
 - Support latest probes.
