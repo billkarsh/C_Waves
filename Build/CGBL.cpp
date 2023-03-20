@@ -42,8 +42,9 @@ static void PrintUsage()
     Log() << "-samples_per_spike=82       ;waveform timepoints";
     Log() << "-pre_samples=30             ;subset of samples_per_spike to left of peak";
     Log() << "-num_spikes=1000            ;max waveforms included in averages";
-    Log() << "-snr_radius=8               ;disk radius (chans) about pk-chan, or zero\n";
+    Log() << "-snr_radius=8               ;disk radius (rows/columns) about pk-chan, or zero\n";
     Log() << "Options:";
+    Log() << "-snr_radius_um=140          ;disk radius (microns) about pk-chan, or zero";
     Log() << "-chnexcl=0,3:5              ;exclude these acq chans from snr";
     Log() << "-prefix=string              ;output files are named:";
     Log() << "                            ;  'prefix_mean_waveforms.npy'";
@@ -83,6 +84,8 @@ bool CGBL::SetCmdLine( int argc, char* argv[] )
             ;
         else if( GetArg( &snrrad, "-snr_radius=%d", argv[i] ) )
             ;
+        else if( GetArg( &snrradum, "-snr_radius_um=%d", argv[i] ) )
+            ;
         else if( GetArgStr( sarg, "-chnexcl=", argv[i] ) ) {
 
             if( !Subset::rngStr2Vec( vexc, sarg ) )
@@ -111,9 +114,13 @@ bad_param:
 
 // Echo
 
-    QString schnexc = "",
-            sprefix = "",
-            sdebug  = "";
+    QString ssnrradum   = "",
+            schnexc     = "",
+            sprefix     = "",
+            sdebug      = "";
+
+    if( snrradum >= 0 )
+        ssnrradum = QString(" -snr_radius_um=%1").arg( snrradum );
 
     if( vexc.size() )
         schnexc = " -chnexcl=" + Subset::vec2RngStr( vexc );
@@ -129,7 +136,7 @@ bad_param:
         "Cmdline: C_Waves -spikeglx_bin=%1 -clus_table_npy=%2"
         " -clus_time_npy=%3 -clus_lbl_npy=%4 -dest=%5"
         " -samples_per_spike=%6 -pre_samples=%7 -num_spikes=%8"
-        " -snr_radius=%9%10%11%12")
+        " -snr_radius=%9%10%11%12%13")
         .arg( sglbin )
         .arg( tblnpy )
         .arg( timenpy )
@@ -139,6 +146,7 @@ bad_param:
         .arg( lhsamp )
         .arg( maxwaves )
         .arg( snrrad )
+        .arg( ssnrradum )
         .arg( schnexc )
         .arg( sprefix )
         .arg( sdebug );

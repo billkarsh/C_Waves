@@ -8,7 +8,11 @@
 #include <stdio.h>
 #include <vector>
 
+class KVParams;
+struct GeomMap;
 struct ShankMap;
+
+class QFileInfo;
 
 /* ---------------------------------------------------------------- */
 /* Types ---------------------------------------------------------- */
@@ -59,7 +63,6 @@ struct MyNPY {
 class Tool
 {
 private:
-    ShankMap                *shankMap;
     QString                 outpath;
     CTable                  clustbl;
     std::vector<Wrkspc>     vW;
@@ -78,15 +81,22 @@ private:
                             nN;
 
 public:
-    Tool();
+    Tool() : fbin(0), mbin(0)   {}
     virtual ~Tool();
 
     void entrypoint();
 
 private:
     bool parseMeta();
+    bool TSM_fromGeomMap( const QFileInfo &fim, const KVParams &kvp );
+    bool TSM_fromShankMap( const QFileInfo &fim, const KVParams &kvp );
+    bool getSavedChans(
+        QVector<uint>   &snsFileChans,
+        const QFileInfo &fim,
+        const KVParams  &kvp );
+    void snrTable_fromGeomMap( const GeomMap &GM );
+    void snrTable_fromShankMap( const ShankMap &SM );
     void createWorkspaces();
-    void snrTable( int nAP );
     bool openFiles();
     bool getSpike( quint64 T );
     void sumWaves();

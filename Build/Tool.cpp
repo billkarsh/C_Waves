@@ -2,6 +2,7 @@
 #include "Tool.h"
 #include "CGBL.h"
 #include "cnpy.h"
+#include "GeomMap.h"
 #include "IMROTbl.h"
 #include "KVParams.h"
 #include "ShankMap.h"
@@ -98,6 +99,9 @@ void Wrkspc::stats( const std::vector<int> &disk, int nN )
     int         nd      = disk.size(),
                 vmax    = -65536,
                 vmin    = 65536;
+
+    if( !nd )
+        return;
 
 // SNR
 
@@ -215,16 +219,8 @@ bool MyNPY::readBlock()
 /* Tool ----------------------------------------------------------- */
 /* ---------------------------------------------------------------- */
 
-Tool::Tool() : shankMap(0), fbin(0), mbin(0)
-{
-}
-
-
 Tool::~Tool()
 {
-    if( shankMap )
-        delete shankMap;
-
     if( fbin ) {
 
         if( mbin )
@@ -325,16 +321,16 @@ bool Tool::parseMeta()
 // V = i * Vmax / Imax / gain
 // --------------------------
 
-    KVParams::const_iterator    it_kvp = kvp.find( "imDatPrb_type" );
-    int                         prbType = -999;
+    KVParams::const_iterator    it_kvp = kvp.find( "imDatPrb_pn" );
+    QString                     pn;
 
     if( it_kvp != kvp.end() )
-        prbType = it_kvp.value().toInt();
+        pn = it_kvp.value().toString();
     else if( kvp.contains( "imProbeOpt" ) )
-        prbType = -3;
+        pn = "Probe3A";
 
-    if( prbType != -999 ) {
-        IMROTbl *R = IMROTbl::alloc( prbType );
+    if( !pn.isEmpty() ) {
+        IMROTbl *R = IMROTbl::alloc( pn );
         R->fromString( 0, kvp["~imroTbl"].toString() );
         uV = 1E+6 * kvp["imAiRangeMax"].toDouble() / R->maxInt() / R->apGain( 0 );
         delete R;
@@ -358,55 +354,97 @@ bool Tool::parseMeta()
                         QString::SkipEmptyParts );
     nN = sl[0].toInt();
 
-// ---------------------
-// Saved channel ID list
-// ---------------------
+// --------
+// SNR disk
+// --------
+
+// Default disks are radius=0
+
+    TSM.clear();
+    TSM.resize( nN );
+
+// Select geom- or shank- map method
+
+    if( GBL.snrradum < 0 ) {
+old_way:
+        if( !TSM_fromShankMap( fim, kvp ) )
+            return false;
+    }
+    else if( GBL.snrradum == 0 )
+        ;
+    else if( kvp.find( "~snsGeomMap" ) != kvp.end() ) {
+        if( !TSM_fromGeomMap( fim, kvp ) )
+            return false;
+    }
+    else {
+        Log() << QString("Missing ~snsGeomMap tag '%1'...Will try ShankMap.")
+                    .arg( fim.fileName() );
+        goto old_way;
+    }
+
+    return true;
+}
+
+
+bool Tool::TSM_fromGeomMap(  const QFileInfo &fim, const KVParams &kvp  )
+{
+    QVector<uint>   snsFileChans;
+
+    if( !getSavedChans( snsFileChans, fim, kvp ) )
+        return false;
+
+// -------
+// GeomMap
+// -------
+
+    GeomMap GM;
+
+    KVParams::const_iterator    it_kvp = kvp.find( "~snsGeomMap" );
+
+    GM.fromString( it_kvp.value().toString() );
+
+// -----------------
+// Excluded channels
+// -----------------
+
+    for( int ie = 0, ne = GBL.vexc.size(); ie < ne; ++ie ) {
+
+        int ig = snsFileChans.indexOf( GBL.vexc[ie] );
+
+        if( ig >= 0 )
+            GM.e[ig].u = 0;
+    }
+
+// ---
+// TSM
+// ---
+
+    snrTable_fromGeomMap( GM );
+
+    return true;
+}
+
+
+bool Tool::TSM_fromShankMap(  const QFileInfo &fim, const KVParams &kvp  )
+{
+    if( GBL.snrrad == 0 )
+        return true;
 
     QVector<uint>   snsFileChans;
-    QString         chnstr = kvp["snsSaveChanSubset"].toString();
 
-    if( Subset::isAllChansStr( chnstr ) )
-        Subset::defaultVec( snsFileChans, nC );
-    else if( !Subset::rngStr2Vec( snsFileChans, chnstr ) ) {
-        Log() << QString("Bad snsSaveChanSubset tag '%1'.")
-                    .arg( fim.fileName() );
+    if( !getSavedChans( snsFileChans, fim, kvp ) )
         return false;
-    }
-
-// ---------------------------------------------
-// Graph (saved channel) to acq channel mappings
-// ---------------------------------------------
-
-    sl = kvp["acqApLfSy"].toString().split(
-            QRegExp("^\\s+|\\s*,\\s*"),
-            QString::SkipEmptyParts );
-    int nAcqChan = sl[0].toInt();
-
-    QVector<int>    ig2ic( nN ),
-                    ic2ig( nAcqChan );
-    ic2ig.fill( -1 );
-
-    for( int ig = 0; ig < nN; ++ig ) {
-
-        int &C = ig2ic[ig];
-
-        C           = snsFileChans[ig];
-        ic2ig[C]    = ig;
-    }
 
 // --------
 // ShankMap
 // --------
 
-    if( shankMap )
-        delete shankMap;
+    ShankMap    SM;
 
-    shankMap = new ShankMap;
-
-    it_kvp = kvp.find( "~snsShankMap" );
+    KVParams::const_iterator    it_kvp = kvp.find( "~snsShankMap" );
 
     if( it_kvp != kvp.end() )
-        shankMap->fromString( it_kvp.value().toString() );
+        SM.fromString( it_kvp.value().toString() );
     else {
         Log() << QString("Missing ~snsShankMap tag '%1'.")
                     .arg( fim.fileName() );
@@ -419,61 +457,93 @@ bool Tool::parseMeta()
 
     for( int ie = 0, ne = GBL.vexc.size(); ie < ne; ++ie ) {
 
-        // IMPORTANT:
-        // User chan label not necessarily within span of
-        // true channels, hence, span of ic2ig[], so don't
-        // use ic2ig for this lookup.
-
-        int ig = ig2ic.indexOf( GBL.vexc[ie] );
+        int ig = snsFileChans.indexOf( GBL.vexc[ie] );
 
         if( ig >= 0 )
-            shankMap->e[ig].u = 0;
+            SM.e[ig].u = 0;
     }
 
 // ---
 // TSM
 // ---
 
-    snrTable( nN );
+    snrTable_fromShankMap( SM );
 
     return true;
 }
 
 
-void Tool::createWorkspaces()
+bool Tool::getSavedChans(
+    QVector<uint>   &snsFileChans,
+    const QFileInfo &fim,
+    const KVParams  &kvp )
 {
-    for( int i = 0; i < clustbl.ndata; ++i ) {
+    QString chnstr = kvp["snsSaveChanSubset"].toString();
 
-        int nspike = clustbl.data[i].nspike;
+    if( Subset::isAllChansStr( chnstr ) )
+        Subset::defaultVec( snsFileChans, nC );
+    else if( !Subset::rngStr2Vec( snsFileChans, chnstr ) ) {
+        Log() << QString("Bad snsSaveChanSubset tag '%1'.")
+                    .arg( fim.fileName() );
+        return false;
+    }
 
-        if( nspike ) {
-            L2W.push_back( vW.size() );
-            vW.push_back( Wrkspc( i, nspike, nN ) );
+    return true;
+}
+
+
+// For each channel [0,nN), calculate neighborhood
+// of indices into a timepoint's channels.
+// - Disk with radius {GBL.snrradiusum}.
+// - The list is sorted for cache friendliness.
+//
+void Tool::snrTable_fromGeomMap( const GeomMap &GM )
+{
+    float   R2 = GBL.snrradum * GBL.snrradum;
+
+    for( int ig = 0; ig < nN; ++ig ) {
+
+        const GeomMapDesc   &E = GM.e[ig];
+
+        if( !E.u )
+            continue;
+
+        std::vector<int>    &V = TSM[ig];
+
+        for( int ie = 0; ie < nN; ++ie ) {
+
+            const GeomMapDesc   &e = GM.e[ie];
+
+            if( e.u && e.s == E.s ) {
+
+                float   dx = e.x - E.x,
+                        dz = e.z - E.z;
+
+                if( dx*dx + dz*dz <= R2 )
+                    V.push_back( ie );
+            }
         }
-        else
-            L2W.push_back( -1 );
+
+        qSort( V );
     }
 }
 
 
-// For each channel [0,nAP), calculate an 8-way
+// For each channel [0,nN), calculate an 8-way
 // neighborhood of indices into a timepoint's channels.
 // - Disk with radius {GBL.snrradius}.
 // - The list is sorted for cache friendliness.
 //
-void Tool::snrTable( int nAP )
+void Tool::snrTable_fromShankMap( const ShankMap &SM )
 {
-    TSM.clear();
-    TSM.resize( nAP );
-
     QMap<ShankMapDesc,uint> ISM;
-    shankMap->inverseMap( ISM );
+    SM.inverseMap( ISM );
 
     int R = GBL.snrrad;
 
-    for( int ig = 0; ig < nAP; ++ig ) {
+    for( int ig = 0; ig < nN; ++ig ) {
 
-        const ShankMapDesc  &E = shankMap->e[ig];
+        const ShankMapDesc  &E = SM.e[ig];
 
         if( !E.u )
             continue;
@@ -485,9 +555,9 @@ void Tool::snrTable( int nAP )
         std::vector<int>    &V = TSM[ig];
 
         int xL  = qMax( int(E.c)  - R, 0 ),
-            xH  = qMin( uint(E.c) + R + 1, shankMap->nc ),
+            xH  = qMin( uint(E.c) + R + 1, SM.nc ),
             yL  = qMax( int(E.r)  - R, 0 ),
-            yH  = qMin( uint(E.r) + R + 1, shankMap->nr );
+            yH  = qMin( uint(E.r) + R + 1, SM.nr );
 
         for( int ix = xL; ix < xH; ++ix ) {
 
@@ -503,6 +573,22 @@ void Tool::snrTable( int nAP )
         }
 
         qSort( V );
+    }
+}
+
+
+void Tool::createWorkspaces()
+{
+    for( int i = 0; i < clustbl.ndata; ++i ) {
+
+        int nspike = clustbl.data[i].nspike;
+
+        if( nspike ) {
+            L2W.push_back( vW.size() );
+            vW.push_back( Wrkspc( i, nspike, nN ) );
+        }
+        else
+            L2W.push_back( -1 );
     }
 }
 

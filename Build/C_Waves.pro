@@ -21,6 +21,7 @@ HEADERS +=              \
     CGBL.h              \
     Cmdline.h           \
     cnpy.h              \
+    GeomMap.h           \
     IMROTbl.h           \
     IMROTbl_T0.h        \
     IMROTbl_T0base.h    \
@@ -48,6 +49,7 @@ SOURCES +=              \
     CGBL.cpp            \
     Cmdline.cpp         \
     cnpy.cpp            \
+    GeomMap.cpp         \
     IMROTbl.cpp         \
     IMROTbl_T0base.cpp  \
     IMROTbl_T1100.cpp   \
