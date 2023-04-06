@@ -99,6 +99,9 @@ struct IMROTbl_T1110 : public IMROTbl
     virtual double maxVolts() const     {return 0.6;}
     virtual bool needADCCal() const     {return true;}
 
+    // {0=NP1000, 1=NP2000, 2=NP2010, 3=NP1110}-like
+    virtual int chanMapping() const     {return 3;}
+
     virtual bool operator==( const IMROTbl &rhs ) const
         {return type == rhs.type
             &&  ehdr == ((const IMROTbl_T1110*)&rhs)->ehdr
@@ -131,7 +134,7 @@ struct IMROTbl_T1110 : public IMROTbl
     int chToEl( int ch ) const;
     int chToEl( int ch, int bank ) const;
 
-    virtual bool chIsRef( int /* ch */ ) const      {return false;}
+    virtual bool chIsRef( int ) const               {return false;}
     virtual int idxToGain( int idx ) const;
     virtual int gainToIdx( int gain ) const;
     virtual void locFltRadii( int &rin, int &rout, int iflt ) const;    // iflt = {1,2}

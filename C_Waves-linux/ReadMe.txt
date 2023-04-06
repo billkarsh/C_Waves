@@ -63,6 +63,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.3
+- Support probes {2003,2004,2013,2014}.
+
 Version 2.2
 - Add option -snr_radius_um, to specify SNR disk in microns.
 

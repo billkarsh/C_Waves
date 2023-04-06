@@ -332,7 +332,7 @@ bool Tool::parseMeta()
     if( !pn.isEmpty() ) {
         IMROTbl *R = IMROTbl::alloc( pn );
         R->fromString( 0, kvp["~imroTbl"].toString() );
-        uV = 1E+6 * kvp["imAiRangeMax"].toDouble() / R->maxInt() / R->apGain( 0 );
+        uV = 1E+6 * R->maxVolts() / R->maxInt() / R->apGain( 0 );
         delete R;
     }
 
