@@ -53,9 +53,10 @@ struct MyNPY {
     size_t              word_size;
     size_t              remVals;
     int                 nRead;
+    char                type;
     MyNPY() : fp(0)     {}
     virtual ~MyNPY()    {if( fp ) fclose( fp );}
-    bool openAndParseHdr( const char *path );
+    bool openAndParseHdr( const char *path, int typeBytes );
     void parseHdr();
     bool readBlock();
 };

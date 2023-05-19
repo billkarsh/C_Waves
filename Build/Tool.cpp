@@ -167,7 +167,7 @@ void Wrkspc::getMeans( std::vector<double> &D, double uV, int nN )
 /* MyNPY ---------------------------------------------------------- */
 /* ---------------------------------------------------------------- */
 
-bool MyNPY::openAndParseHdr( const char *path )
+bool MyNPY::openAndParseHdr( const char *path , int typeBytes )
 {
     fp = fopen( path, "rb" );
 
@@ -177,6 +177,19 @@ bool MyNPY::openAndParseHdr( const char *path )
     }
 
     parseHdr();
+
+    if( shape.size() != 2 || shape[1] != 1 ) {
+        Log() << QString("NPY file must have dimensions: (N spikes)X(1 col) '%1'.")
+                    .arg( path );
+        return false;
+    }
+
+    if( type != 'u' || word_size != typeBytes ) {
+        QString treq = (typeBytes == 8 ? "uint64" : "uint32");
+        Log() << QString("NPY file must be data type %1 instead of <%2%3> '%4'.")
+                    .arg( treq ).arg( type ).arg( 8*word_size ).arg( path );
+        return false;
+    }
 
     return true;
 }
@@ -188,7 +201,7 @@ void MyNPY::parseHdr()
 
     bool fortran_order;
 
-    cnpy::parse_npy_header( fp, word_size, shape, fortran_order );
+    type = cnpy::parse_npy_header( fp, word_size, shape, fortran_order );
 
     remVals = 1;
     for( int is = 0, ns = shape.size(); is < ns; ++is )
@@ -250,10 +263,22 @@ void Tool::entrypoint()
     clustbl.data  = tbl.data<TblRow>();
     clustbl.ndata = tbl.shape[0];
 
+    if( tbl.shape.size() != 2 || tbl.shape[1] != 2 ) {
+        Log() << QString("Cluster table must have dimensions: (N clusters)X(2 cols) '%1'.")
+                    .arg( fi.filePath() );
+        return;
+    }
+
+    if( tbl.type != 'u' || tbl.word_size != 4 ) {
+        Log() << QString("Cluster table must be data type uint32 instead of <%1%2> '%3'.")
+                    .arg( tbl.type ).arg( 8*tbl.word_size ).arg( fi.filePath() );
+        return;
+    }
+
     if( GBL.debug_npy ) {
         Log() << "Cluster Table: " << clustbl.ndata << " entries";
-        for( int i = 0; i < 10; ++i )
-            Log() << QString("%1 %2").arg( clustbl.data[i].nspike ).arg( clustbl.data[i].pkchan );
+        for( int ic = 0, nc = qMin( size_t(10), tbl.shape[0] ); ic < nc; ++ic )
+            Log() << QString("%1 %2").arg( clustbl.data[ic].nspike ).arg( clustbl.data[ic].pkchan );
     }
 
     if( !parseMeta() )
@@ -268,19 +293,32 @@ void Tool::entrypoint()
     if( !openFiles() )
         return;
 
+    // Spike-count agreement check
+    {
+        quint64  tblSpikes = 0;
+        for( int ic = 0, nc = tbl.shape[0]; ic < nc; ++ic )
+            tblSpikes += clustbl.data[ic].nspike;
+
+        if( tblSpikes != pytim.shape[0] || tblSpikes != pylbl.shape[0] ) {
+            Log() << QString("Spike-count disagreement between cluster-table(%1), times(%2), labels(%3).")
+                        .arg( tblSpikes ).arg( pytim.shape[0] ).arg( pylbl.shape[0] );
+            return;
+        }
+    }
+
     if( GBL.debug_npy ) {
 
         Log() << "Cluster Times: " << pytim.remVals << " entries";
         pytim.readBlock();
         quint64 *T = (quint64*)&pytim.block[0];
-        for( int i = 0; i < 10; ++i )
-            Log() << QString("%1").arg( T[i] );
+        for( int ic = 0, nc = qMin( 10, pytim.nRead ); ic < nc; ++ic )
+            Log() << QString("%1").arg( T[ic] );
 
         Log() << "Cluster Labels: " << pylbl.remVals << " entries";
         pylbl.readBlock();
         quint32 *L = (quint32*)&pylbl.block[0];
-        for( int i = 0; i < 10; ++i )
-            Log() << QString("%1").arg( L[i] );
+        for( int ic = 0, nc = qMin( 10, pylbl.nRead ); ic < nc; ++ic )
+            Log() << QString("%1").arg( L[ic] );
 
         return;
     }
@@ -615,10 +653,10 @@ bool Tool::openFiles()
 
 // NPY
 
-    if( !pytim.openAndParseHdr( GBL.timenpy ) )
+    if( !pytim.openAndParseHdr( GBL.timenpy, 8 ) )
         return false;
 
-    if( !pylbl.openAndParseHdr( GBL.lblnpy ) )
+    if( !pylbl.openAndParseHdr( GBL.lblnpy, 4 ) )
         return false;
 
     return true;

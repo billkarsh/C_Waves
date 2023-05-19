@@ -6,6 +6,7 @@
 // Bill Karsh: Comment out unneeded zlib dependence.
 // Bill Karsh: Round header size up to 64-byte multiple.
 // Bill Karsh: Handle fortran_order=True.
+// Bill Karsh: Enable reading data type.
 
 #ifndef LIBCNPY_H_
 #define LIBCNPY_H_
@@ -27,8 +28,8 @@
 namespace cnpy {
 
     struct NpyArray {
-        NpyArray(const std::vector<size_t>& _shape, size_t _word_size, bool _fortran_order) :
-            shape(_shape), word_size(_word_size), fortran_order(_fortran_order)
+        NpyArray(const std::vector<size_t>& _shape, size_t _word_size, char _type, bool _fortran_order) :
+            shape(_shape), word_size(_word_size), type(_type), fortran_order(_fortran_order)
         {
             num_vals = 1;
             for(size_t i = 0;i < shape.size();i++) num_vals *= shape[i];
@@ -36,7 +37,7 @@ namespace cnpy {
                 new std::vector<char>(num_vals * word_size));
         }
 
-        NpyArray() : shape(0), word_size(0), fortran_order(0), num_vals(0) { }
+        NpyArray() : shape(0), word_size(0), type('i'), fortran_order(0), num_vals(0) { }
 
         template<typename T>
         T* data() {
@@ -61,6 +62,7 @@ namespace cnpy {
         std::shared_ptr<std::vector<char>> data_holder;
         std::vector<size_t> shape;
         size_t word_size;
+        char type;
         bool fortran_order;
         size_t num_vals;
     };
@@ -70,8 +72,8 @@ namespace cnpy {
     char BigEndianTest();
     char map_type(const std::type_info& t);
     template<typename T> std::vector<char> create_npy_header(const std::vector<size_t>& shape);
-    void parse_npy_header(FILE* fp,size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
-    void parse_npy_header(unsigned char* buffer,size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
+    char parse_npy_header(FILE* fp,size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
+    char parse_npy_header(unsigned char* buffer,size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
     NpyArray npy_load(std::string fname);
 
     template<typename T> std::vector<char>& operator+=(std::vector<char>& lhs, const T rhs) {

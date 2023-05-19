@@ -53,6 +53,10 @@ Notes:
 
 Change Log
 ----------
+Version 2.4
+- Sanity-check npy files.
+- Update probe support.
+
 Version 2.3
 - Support probes {2003,2004,2013,2014}.
 
