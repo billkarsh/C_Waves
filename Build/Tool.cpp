@@ -178,7 +178,9 @@ bool MyNPY::openAndParseHdr( const char *path , int typeBytes )
 
     parseHdr();
 
-    if( shape.size() != 2 || shape[1] != 1 ) {
+    if( shape.size() == 1 )
+        ;
+    else if( shape.size() != 2 || shape[1] > 1 ) {
         Log() << QString("NPY file must have dimensions: (N spikes)X(1 col) '%1'.")
                     .arg( path );
         return false;

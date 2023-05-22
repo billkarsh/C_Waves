@@ -63,6 +63,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.5
+- Handle phy output.
+
 Version 2.4
 - Sanity-check npy files.
 - Update probe support.
