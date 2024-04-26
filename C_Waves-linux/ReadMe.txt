@@ -63,6 +63,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.6
+- Support NP2020 quad-probes.
+
 Version 2.5
 - Handle phy output.
 
