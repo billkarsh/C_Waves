@@ -32,7 +32,7 @@ Usage:
 Required parameters:
 -spikeglx_bin=<filepath>    ;spikeglx metafile required in same dir
 -clus_table_npy=<filepath>  ;2-col table (uint32): {num_spike, pk-chan}
--clus_time_npy=<filepath>   ;1-col table (uint64): {spike_time} (ASCENDING ORDER)
+-clus_time_npy=<filepath>   ;1-col table (64-bit): {spike_time} (ASCENDING ORDER)
 -clus_lbl_npy=<filepath>    ;1-col table (uint32): {clus_lbl per spike_time}
 -dest=<path>                ;output dir (must exist)
 -samples_per_spike=82       ;waveform timepoints
@@ -65,6 +65,7 @@ Change Log
 ----------
 Version 2.6
 - Support NP2020 quad-probes.
+- Handle int64 or uint64 spike times.
 
 Version 2.5
 - Handle phy output.

@@ -99,7 +99,7 @@ private:
     void snrTable_fromShankMap( const ShankMap &SM );
     void createWorkspaces();
     bool openFiles();
-    bool getSpike( quint64 T );
+    bool getSpike( qint64 T );
     void sumWaves();
     void fixPath();
     void writeMeans();

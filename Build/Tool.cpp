@@ -186,11 +186,23 @@ bool MyNPY::openAndParseHdr( const char *path , int typeBytes )
         return false;
     }
 
-    if( type != 'u' || word_size != typeBytes ) {
-        QString treq = (typeBytes == 8 ? "uint64" : "uint32");
-        Log() << QString("NPY file must be data type %1 instead of <%2%3> '%4'.")
-                    .arg( treq ).arg( type ).arg( 8*word_size ).arg( path );
-        return false;
+    if( typeBytes == 8 ) {
+        // times
+        if( !(type == 'i' || type == 'u') || word_size != 8 ) {
+            Log() <<
+            QString("NPY file must be int64 or uint64 instead of <%1%2> '%3'.")
+            .arg( type ).arg( 8*word_size ).arg( path );
+            return false;
+        }
+    }
+    else {
+        // labels
+        if( type != 'u' || word_size != 4 ) {
+            Log() <<
+            QString("NPY file must be data type uint32 instead of <%1%2> '%3'.")
+            .arg( type ).arg( 8*word_size ).arg( path );
+            return false;
+        }
     }
 
     return true;
@@ -312,7 +324,7 @@ void Tool::entrypoint()
 
         Log() << "Cluster Times: " << pytim.remVals << " entries";
         pytim.readBlock();
-        quint64 *T = (quint64*)&pytim.block[0];
+        qint64 *T = (qint64*)&pytim.block[0];
         for( int ic = 0, nc = qMin( 10, pytim.nRead ); ic < nc; ++ic )
             Log() << QString("%1").arg( T[ic] );
 
@@ -371,6 +383,10 @@ bool Tool::parseMeta()
 
     if( !pn.isEmpty() ) {
         IMROTbl *R = IMROTbl::alloc( pn );
+        if( !R ) {
+            Log() << QString("Unknown probe type '%1'.").arg( pn );
+            return false;
+        }
         R->fromString( 0, kvp["~imroTbl"].toString() );
         uV = 1E+6 * R->maxVolts() / R->maxInt() / R->apGain( 0 );
         delete R;
@@ -665,7 +681,7 @@ bool Tool::openFiles()
 }
 
 
-bool Tool::getSpike( quint64 T )
+bool Tool::getSpike( qint64 T )
 {
     if( T < GBL.lhsamp )
         return false;
@@ -689,7 +705,7 @@ void Tool::sumWaves()
 
         pylbl.readBlock();
 
-        quint64 *T = (quint64*)&pytim.block[0];
+        qint64  *T = (qint64*)&pytim.block[0];
         quint32 *L = (quint32*)&pylbl.block[0];
 
         for( int it = 0; it < pytim.nRead; ++it, ++T, ++L ) {
