@@ -580,7 +580,7 @@ void Tool::snrTable_fromGeomMap( const GeomMap &GM )
             }
         }
 
-        qSort( V );
+        std::sort( V.begin(), V.end() );
     }
 }
 
@@ -628,7 +628,7 @@ void Tool::snrTable_fromShankMap( const ShankMap &SM )
             }
         }
 
-        qSort( V );
+        std::sort( V.begin(), V.end() );
     }
 }
 

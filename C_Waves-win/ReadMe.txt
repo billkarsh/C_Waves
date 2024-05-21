@@ -53,6 +53,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.7
+- Parse older three-value geomMap headers.
+
 Version 2.6
 - Support NP2020 quad-probes.
 - Handle int64 or uint64 spike times.
