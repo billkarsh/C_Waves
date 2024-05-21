@@ -64,6 +64,7 @@ Notes:
 Change Log
 ----------
 Version 2.7
+- Support NXT probes.
 - Parse older three-value geomMap headers.
 
 Version 2.6
