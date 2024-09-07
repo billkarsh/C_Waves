@@ -29,6 +29,7 @@ struct CTable {
 
 struct Wrkspc {
     std::vector<int>    wsums;  // rows=nsamp, cols=nN
+    std::vector<qint16> medpk;  // rows=nsamp, cols=maxwaves
     double              snr;
     qint64              s2;
     int                 lbl,
@@ -41,9 +42,12 @@ struct Wrkspc {
         const std::vector<int>  &disk,
         const qint16            *src,
         int                     nC,
-        int                     nN );
+        int                     nN,
+        int                     pkchan );
     void stats( const std::vector<int> &disk, int nN );
+    void sampMedian( int it );
     void getMeans( std::vector<double> &D, double uV, int nN );
+    void getMedian( std::vector<double> &D, double uV );
 };
 
 struct MyNPY {
@@ -103,6 +107,7 @@ private:
     void sumWaves();
     void fixPath();
     void writeMeans();
+    void writeMedians();
     void writeSNRs();
 };
 

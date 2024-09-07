@@ -19,9 +19,11 @@ Compatibility:
 Output:
 + 'mean_waveforms.npy': Array of mean waveforms (uV) with major-to-minor
 +    dims {nClusters, nChannels, nSamples}. nChannels matches the channel
-+    count of the spikeglx bin file. Non-neural 'waveforms' are zeroed.
++    count of the spikeglx bin file. Waveforms for non-neural channels are zeroed.
++ 'median_peak_waveforms.npy': Median waveform (uV) at peak with major-to-minor
++    dims {nClusters, nSamples}. Waveforms for empty clusters are zeroed.
 + 'cluster_snr.npy': 2-col table of snr for the peak channels with cols
-+    {snr, nSpikes_in_snr}.
++    {snr, nSpikes_in_snr}. SNR for an empty cluster is set to -1.
 
 Usage:
 >runit.sh < required_parameters > [ options ]
@@ -64,8 +66,10 @@ Notes:
 Change Log
 ----------
 Version 2.7
+- Support NP1221 probes.
 - Support NXT probes.
 - Parse older three-value geomMap headers.
+- Add median_peak_waveforms.npy.
 
 Version 2.6
 - Support NP2020 quad-probes.

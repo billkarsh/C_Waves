@@ -41,6 +41,7 @@ Wrkspc::Wrkspc( int lbl, int nspike, int nNeurChan )
     :   snr(-1), s2(0), lbl(lbl), cntdwn(1), nsum(0)
 {
     wsums.resize( GBL.nsamp * nNeurChan, 0 );
+    medpk.resize( GBL.nsamp * GBL.maxwaves, 0 );
 
     step = qMax( 1, int(ceil( float(nspike) / GBL.maxwaves )) );
 }
@@ -48,6 +49,9 @@ Wrkspc::Wrkspc( int lbl, int nspike, int nNeurChan )
 
 bool Wrkspc::wantIt()
 {
+    if( nsum >= GBL.maxwaves )
+        return false;
+
     if( --cntdwn > 0 )
         return false;
 
@@ -62,7 +66,8 @@ void Wrkspc::addSpike(
     const std::vector<int>  &disk,
     const qint16            *src,
     int                     nC,
-    int                     nN )
+    int                     nN,
+    int                     pkchan )
 {
     const int   *dsk    = &disk[0];
     int         *sum    = &wsums[0];
@@ -87,6 +92,9 @@ if( it < 15 ) {
         // mean wave sums over all nN
         for( int ic = 0; ic < nN; ++ic, ++sum )
             *sum += src[ic];
+
+        // append to median array for pkchan
+        medpk[GBL.maxwaves * it + (nsum - 1)] = src[pkchan];
     }
 }
 
@@ -126,6 +134,8 @@ if( it < 15 ) {
             else if( v < vmin )
                 vmin = v;
         }
+
+        sampMedian( it );
     }
 
 //--------------------------------------------------------------------
@@ -148,6 +158,21 @@ GBL.nsamp = temp;
 }
 
 
+// Replace first element with median value.
+//
+void Wrkspc::sampMedian( int it )
+{
+    vec_i16::iterator   ibeg, imid, iend;
+
+    ibeg = medpk.begin() + GBL.maxwaves * it;
+    iend = ibeg + nsum;
+    imid = ibeg + nsum / 2;
+
+    std::nth_element( ibeg, imid, iend );
+    *ibeg = *imid;
+}
+
+
 void Wrkspc::getMeans( std::vector<double> &D, double uV, int nN )
 {
     double  *dst    = &D[0];
@@ -158,9 +183,19 @@ void Wrkspc::getMeans( std::vector<double> &D, double uV, int nN )
 
     for( int ic = 0; ic < nN; ++ic ) {
 
-        for( int is = 0; is < ns; ++is, ++dst )
-            *dst = uV * src[nN*is + ic];
+        for( int it = 0; it < ns; ++it, ++dst )
+            *dst = uV * src[nN*it + ic];
     }
+}
+
+
+void Wrkspc::getMedian( std::vector<double> &D, double uV )
+{
+    double  *dst    = &D[0];
+    int     ns      = GBL.nsamp;
+
+    for( int it = 0; it < ns; ++it, ++dst )
+        *dst = uV * medpk[GBL.maxwaves * it];
 }
 
 /* ---------------------------------------------------------------- */
@@ -344,6 +379,7 @@ void Tool::entrypoint()
     sumWaves();
 
     writeMeans();
+    writeMedians();
     writeSNRs();
 }
 
@@ -653,6 +689,11 @@ bool Tool::openFiles()
 {
 // SGL
 
+    if( !QString(GBL.sglbin).endsWith( ".bin", Qt::CaseInsensitive ) ) {
+        Log() << QString("Not a binary file: %1").arg( GBL.sglbin );
+        return false;
+    }
+
     fbin = new QFile( GBL.sglbin );
 
     if( !(fbin->open( QIODevice::ReadOnly )) ) {
@@ -710,13 +751,20 @@ void Tool::sumWaves()
 
         for( int it = 0; it < pytim.nRead; ++it, ++T, ++L ) {
 
+            // Note on index checking:
+            // Label (L) is drawn from the file of labels on spikes,
+            // so inherently, cluster (L) is non-empty, so L2W[*L]
+            // is non-negative.
+
             Wrkspc  &W = vW[L2W[*L]];
 
             if( !W.wantIt() )
                 continue;
 
-            if( getSpike( *T ) )
-                W.addSpike( TSM[clustbl.data[*L].pkchan], wbin, nC, nN );
+            if( getSpike( *T ) ) {
+                int pkchan = clustbl.data[*L].pkchan;
+                W.addSpike( TSM[pkchan], wbin, nC, nN, pkchan );
+            }
         }
     }
 
@@ -816,6 +864,70 @@ void Tool::writeMeans()
         }
         else
             fwrite( &Z[0], sizeof(double), n, fp );
+    }
+
+// -----
+// Close
+// -----
+
+    fclose( fp );
+}
+
+
+void Tool::writeMedians()
+{
+// ----
+// Open
+// ----
+
+    QString name;
+
+    if( GBL.prefix )
+        name = QString("%1%2_median_peak_waveforms.npy").arg( outpath ).arg( GBL.prefix );
+    else
+        name = QString("%1median_peak_waveforms.npy").arg( outpath );
+
+    FILE *fp = fopen( STR2CHR( name ), "wb" );
+
+    if( !fp ) {
+        Log() << QString("Unable to open median_peak_waveforms.npy here '%1'").arg( outpath );
+        return;
+    }
+
+// -------
+// Buffers
+// -------
+
+    std::vector<double> D( GBL.nsamp, 0 ), Z( GBL.nsamp, 0 );
+
+// ------
+// Header
+// ------
+
+    std::vector<size_t> shape;
+
+    shape.push_back( clustbl.ndata );
+    shape.push_back( GBL.nsamp );
+
+    std::vector<char>   H = cnpy::create_npy_header<double>( shape );
+
+    fwrite( &H[0], 1, H.size(), fp );
+
+// ----
+// Data
+// ----
+
+    for( int ik = 0; ik < clustbl.ndata; ++ik ) {
+
+        int i = L2W[ik];
+
+        if( i >= 0 ) {
+
+            vW[i].getMedian( D, uV );
+            fwrite( &D[0], sizeof(double), GBL.nsamp, fp );
+        }
+        else
+            fwrite( &Z[0], sizeof(double), GBL.nsamp, fp );
     }
 
 // -----
