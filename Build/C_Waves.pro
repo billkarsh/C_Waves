@@ -34,6 +34,7 @@ HEADERS += \
     IMROTbl_T1122.h \
     IMROTbl_T1123.h \
     IMROTbl_T1200.h \
+    IMROTbl_T1221.h \
     IMROTbl_T1300.h \
     IMROTbl_T2003.h \
     IMROTbl_T2013.h \
@@ -68,6 +69,7 @@ SOURCES += \
     IMROTbl_T1122.cpp \
     IMROTbl_T1123.cpp \
     IMROTbl_T1200.cpp \
+    IMROTbl_T1221.cpp \
     IMROTbl_T2003.cpp \
     IMROTbl_T2013.cpp \
     IMROTbl_T2020.cpp \
