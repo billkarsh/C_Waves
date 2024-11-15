@@ -45,6 +45,8 @@ static void PrintUsage()
     Log() << "-snr_radius=8               ;disk radius (rows/columns) about pk-chan, or zero\n";
     Log() << "Options:";
     Log() << "-snr_radius_um=140          ;disk radius (microns) about pk-chan, or zero";
+    Log() << "-startsecs=10.0             ;only include spikes >= (seconds)";
+    Log() << "-endsecs=100.0              ;only include spikes <  (seconds)";
     Log() << "-chnexcl=0,3:5              ;exclude these acq chans from snr";
     Log() << "-prefix=string              ;output files are named:";
     Log() << "                            ;  'prefix_mean_waveforms.npy'";
@@ -66,7 +68,11 @@ bool CGBL::SetCmdLine( int argc, char* argv[] )
 
     for( int i = 1; i < argc; ++i ) {
 
-        if( GetArgStr( sglbin, "-spikeglx_bin=", argv[i] ) )
+        if( GetArg( &startsecs, "-startsecs=%lf", argv[i] ) )
+            ;
+        else if( GetArg( &endsecs, "-endsecs=%lf", argv[i] ) )
+            ;
+        else if( GetArgStr( sglbin, "-spikeglx_bin=", argv[i] ) )
             ;
         else if( GetArgStr( tblnpy, "-clus_table_npy=", argv[i] ) )
             ;
@@ -115,12 +121,20 @@ bad_param:
 // Echo
 
     QString ssnrradum   = "",
+            sstart      = "",
+            send        = "",
             schnexc     = "",
             sprefix     = "",
             sdebug      = "";
 
     if( snrradum >= 0 )
         ssnrradum = QString(" -snr_radius_um=%1").arg( snrradum );
+
+    if( startsecs > -1.0 )
+        sstart = QString(" -startsecs=%1").arg( startsecs );
+
+    if( endsecs > -1.0 )
+        send = QString(" -endsecs=%1").arg( endsecs );
 
     if( vexc.size() )
         schnexc = " -chnexcl=" + Subset::vec2RngStr( vexc );
@@ -136,7 +150,7 @@ bad_param:
         "Cmdline: C_Waves -spikeglx_bin=%1 -clus_table_npy=%2"
         " -clus_time_npy=%3 -clus_lbl_npy=%4 -dest=%5"
         " -samples_per_spike=%6 -pre_samples=%7 -num_spikes=%8"
-        " -snr_radius=%9%10%11%12%13")
+        " -snr_radius=%9%10%11%12%13%14%15")
         .arg( sglbin )
         .arg( tblnpy )
         .arg( timenpy )
@@ -147,6 +161,8 @@ bad_param:
         .arg( maxwaves )
         .arg( snrrad )
         .arg( ssnrradum )
+        .arg( sstart )
+        .arg( send )
         .arg( schnexc )
         .arg( sprefix )
         .arg( sdebug );

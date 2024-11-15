@@ -37,7 +37,7 @@ then
     ARGS="$ARGS -clus_time_npy=$SRC/imec3_ks2/spike_times.npy"
     ARGS="$ARGS -clus_lbl_npy=$SRC/imec3_ks2/spike_clusters.npy"
     ARGS="$ARGS -dest=$DST"
-    ARGS="$ARGS -samples_per_spike=82 -pre_samples=20 -num_spikes=1000 -snr_radius=8"
+    ARGS="$ARGS -samples_per_spike=82 -pre_samples=20 -num_spikes=1000 -snr_radius_um=140"
 else
     ARGS=$@
 fi

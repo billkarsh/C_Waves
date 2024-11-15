@@ -405,6 +405,27 @@ bool Tool::parseMeta()
         return false;
     }
 
+// ------------------
+// startsecs, endsecs
+// ------------------
+
+    double  srate   = kvp["imSampRate"].toDouble(),
+            fsecs   = kvp["fileTimeSecs"].toDouble(),
+            winL    = 0.0,
+            winR    = fsecs;
+
+    if( GBL.startsecs > -1.0 ) {
+        startsmps   = GBL.startsecs * srate;
+        winL        = qBound( 0.0, GBL.startsecs, fsecs - 1.0 );
+    }
+
+    if( GBL.endsecs > -1.0 ) {
+        endsmps = GBL.endsecs * srate;
+        winR    = qBound( winL + 1.0, GBL.endsecs, fsecs );
+    }
+
+    fCount = (winR - winL) / fsecs;
+
 // --------------------------
 // V = i * Vmax / Imax / gain
 // --------------------------
@@ -673,7 +694,7 @@ void Tool::createWorkspaces()
 {
     for( int i = 0; i < clustbl.ndata; ++i ) {
 
-        int nspike = clustbl.data[i].nspike;
+        int nspike = fCount * clustbl.data[i].nspike;
 
         if( nspike ) {
             L2W.push_back( vW.size() );
@@ -750,6 +771,12 @@ void Tool::sumWaves()
         quint32 *L = (quint32*)&pylbl.block[0];
 
         for( int it = 0; it < pytim.nRead; ++it, ++T, ++L ) {
+
+            if( *T < startsmps )
+                continue;
+
+            if( *T >= endsmps )
+                continue;
 
             // Note on index checking:
             // Label (L) is drawn from the file of labels on spikes,

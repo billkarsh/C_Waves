@@ -5,6 +5,7 @@
 #include <QString>
 #include <QVector>
 
+#include <limits>
 #include <stdio.h>
 #include <vector>
 
@@ -13,6 +14,8 @@ struct GeomMap;
 struct ShankMap;
 
 class QFileInfo;
+
+#define I64MAX  std::numeric_limits<qint64>::max()
 
 /* ---------------------------------------------------------------- */
 /* Types ---------------------------------------------------------- */
@@ -78,15 +81,20 @@ private:
                             *wbin;
     MyNPY                   pytim,
                             pylbl;
-    double                  uV;
+    double                  fCount,
+                            uV;
     quint64                 file_ntpts;
+    qint64                  startsmps,
+                            endsmps;
     int                     smpBytes,
                             spikeBytes,
                             nC,
                             nN;
 
 public:
-    Tool() : fbin(0), mbin(0)   {}
+    Tool()
+        :   fbin(0), mbin(0), fCount(1.0),
+            startsmps(-I64MAX), endsmps(I64MAX) {}
     virtual ~Tool();
 
     void entrypoint();

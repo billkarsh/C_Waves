@@ -21,7 +21,7 @@ set LOCALARGS=-spikeglx_bin=\\dm11\apig\C_waves_test_data\SC024_092319_NP1.0_Mid
 -clus_time_npy=\\dm11\apig\C_waves_test_data\spike_times.npy ^
 -clus_lbl_npy=\\dm11\apig\C_waves_test_data\spike_clusters.npy ^
 -dest=\\dm11\apig\C_waves_test_data\out ^
--samples_per_spike=82 -pre_samples=20 -num_spikes=1000 -snr_radius=8
+-samples_per_spike=82 -pre_samples=20 -num_spikes=1000 -snr_radius_um=140
 
 if [%1]==[] (set ARGS=%LOCALARGS%) else (set ARGS=%*)
 
