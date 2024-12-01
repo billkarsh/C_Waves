@@ -67,6 +67,9 @@ Notes:
 
 Change Log
 ----------
+Version 2.9
+- Support NP1014, NP1033, NP2005, NP2006.
+
 Version 2.8
 - Support NP2021 quad-probes.
 - Script default radius changed to 140um.
